@@ -1,8 +1,15 @@
 import { ServerFeature } from '../../core/config';
 import { Plugin } from '../registry';
 import { PromptService } from './prompt';
-import { assertProvidersConfigs, ProviderService } from './providers';
+import {
+  assertProvidersConfigs,
+  ProviderService,
+  registerCopilotProvider,
+} from './providers';
+import { OpenAIProvider } from './providers/openai';
 import { ChatSessionService } from './session';
+
+registerCopilotProvider(OpenAIProvider);
 
 @Plugin({
   name: 'copilot',
