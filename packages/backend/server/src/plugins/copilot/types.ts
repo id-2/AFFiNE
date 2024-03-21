@@ -124,7 +124,17 @@ export interface CopilotTextToTextProvider extends CopilotProvider {
   ): AsyncIterable<string>;
 }
 
-export interface CopilotTextToEmbeddingProvider extends CopilotProvider {}
+export interface CopilotTextToEmbeddingProvider extends CopilotProvider {
+  generateEmbedding(
+    messages: string[] | string,
+    model: string,
+    options: {
+      dimensions: number;
+      signal?: AbortSignal;
+      user?: string;
+    }
+  ): Promise<number[][]>;
+}
 
 export interface CopilotTextToImageProvider extends CopilotProvider {}
 
