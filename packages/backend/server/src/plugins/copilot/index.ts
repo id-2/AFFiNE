@@ -3,10 +3,10 @@ import { Plugin } from '../registry';
 import { PromptService } from './prompt';
 import {
   assertProvidersConfigs,
+  OpenAIProvider,
   ProviderService,
   registerCopilotProvider,
 } from './providers';
-import { OpenAIProvider } from './providers/openai';
 import { ChatSessionService } from './session';
 
 registerCopilotProvider(OpenAIProvider);
