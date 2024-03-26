@@ -186,6 +186,36 @@ export class ChatSessionService {
       });
   }
 
+  private calculateTokenSize(
+    messages: ChatMessage[],
+    model: AvailableModel
+  ): number {
+    const encoder = getTokenEncoder(model);
+    return messages
+      .map(m => encoder?.encode_ordinary(m.content).length || 0)
+      .reduce((total, length) => total + length, 0);
+  }
+
+  async listSessions(
+    userId: string,
+    workspaceId: string,
+    options?: { docId?: string; action?: boolean }
+  ): Promise<string[]> {
+    return await this.db.aiSession
+      .findMany({
+        where: {
+          userId,
+          workspaceId,
+          docId: workspaceId === options?.docId ? undefined : options?.docId,
+          prompt: {
+            action: options?.action ? { not: null } : { equals: null },
+          },
+        },
+        select: { id: true },
+      })
+      .then(sessions => sessions.map(({ id }) => id));
+  }
+
   async listHistories(
     workspaceId: string,
     docId?: string,
@@ -224,10 +254,10 @@ export class ChatSessionService {
             try {
               const ret = ChatMessageSchema.array().safeParse(messages);
               if (ret.success) {
-                const encoder = getTokenEncoder(prompt.model as AvailableModel);
-                const tokens = ret.data
-                  .map(m => encoder?.encode_ordinary(m.content).length || 0)
-                  .reduce((total, length) => total + length, 0);
+                const tokens = this.calculateTokenSize(
+                  ret.data,
+                  prompt.model as AvailableModel
+                );
                 return { sessionId: id, tokens, messages: ret.data };
               }
             } catch (e) {
