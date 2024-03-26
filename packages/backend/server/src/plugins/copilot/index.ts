@@ -1,6 +1,7 @@
 import { ServerFeature } from '../../core/config';
 import { PermissionService } from '../../core/workspaces/permission';
 import { Plugin } from '../registry';
+import { CopilotController } from './controller';
 import { PromptService } from './prompt';
 import {
   assertProvidersConfigs,
@@ -8,6 +9,7 @@ import {
   ProviderService,
   registerCopilotProvider,
 } from './providers';
+import { CopilotResolver, UserCopilotResolver } from './resolver';
 import { ChatSessionService } from './session';
 
 registerCopilotProvider(OpenAIProvider);
@@ -17,9 +19,12 @@ registerCopilotProvider(OpenAIProvider);
   providers: [
     PermissionService,
     ChatSessionService,
+    CopilotResolver,
+    UserCopilotResolver,
     PromptService,
     ProviderService,
   ],
+  controllers: [CopilotController],
   contributesTo: ServerFeature.Copilot,
   if: config => {
     if (config.flavor.graphql) {
