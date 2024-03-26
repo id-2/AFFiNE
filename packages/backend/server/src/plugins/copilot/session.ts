@@ -117,7 +117,9 @@ export class ChatSessionService {
       },
       update: {
         messages: {
-          create: state.messages.map((m, idx) => ({ idx, ...m })),
+          // delete old messages
+          deleteMany: {},
+          create: state.messages,
         },
       },
       create: {
@@ -219,13 +221,17 @@ export class ChatSessionService {
       .then(sessions =>
         sessions
           .map(({ id, prompt, messages }) => {
-            const ret = ChatMessageSchema.array().safeParse(messages);
-            if (ret.success) {
-              const encoder = getTokenEncoder(prompt.model as AvailableModel);
-              const tokens = ret.data
-                .map(m => encoder?.encode_ordinary(m.content).length || 0)
-                .reduce((total, length) => total + length, 0);
-              return { sessionId: id, tokens, messages: ret.data };
+            try {
+              const ret = ChatMessageSchema.array().safeParse(messages);
+              if (ret.success) {
+                const encoder = getTokenEncoder(prompt.model as AvailableModel);
+                const tokens = ret.data
+                  .map(m => encoder?.encode_ordinary(m.content).length || 0)
+                  .reduce((total, length) => total + length, 0);
+                return { sessionId: id, tokens, messages: ret.data };
+              }
+            } catch (e) {
+              this.logger.error('Unexpected error in listHistories', e);
             }
             return undefined;
           })
