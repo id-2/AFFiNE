@@ -83,6 +83,19 @@ export const ChatHistorySchema = z
 
 export type ChatHistory = z.infer<typeof ChatHistorySchema>;
 
+export const CopilotSchema = z
+  .object({
+    // total used token of workspace
+    tokens: z.number(),
+    // count for chat of workspace
+    chatCount: z.number(),
+    // count for action of workspace
+    actionCount: z.number(),
+  })
+  .strict();
+
+export type Copilot = z.infer<typeof CopilotSchema>;
+
 // ======== Provider Interface ========
 
 export enum CopilotProviderType {
