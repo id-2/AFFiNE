@@ -186,16 +186,18 @@ export class ChatSessionService {
 
   async listHistories(
     workspaceId: string,
-    docId: string,
-    options: ListHistoriesOptions
+    docId?: string,
+    options?: ListHistoriesOptions
   ): Promise<ChatHistory[]> {
     return await this.db.aiSession
       .findMany({
         where: {
           workspaceId: workspaceId,
           docId: workspaceId === docId ? undefined : docId,
-          prompt: { action: { not: null } },
-          id: options.sessionId ? { equals: options.sessionId } : undefined,
+          prompt: {
+            action: options?.action ? { not: null } : { equals: null },
+          },
+          id: options?.sessionId ? { equals: options.sessionId } : undefined,
         },
         select: {
           id: true,
@@ -210,8 +212,8 @@ export class ChatSessionService {
             },
           },
         },
-        take: options.limit,
-        skip: options.skip,
+        take: options?.limit,
+        skip: options?.skip,
         orderBy: { createdAt: 'desc' },
       })
       .then(sessions =>
