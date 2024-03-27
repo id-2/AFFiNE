@@ -34,6 +34,14 @@ export interface Scalars {
   Upload: { input: File; output: File };
 }
 
+export interface CreateChatSessionInput {
+  action: Scalars['Boolean']['input'];
+  docId: Scalars['String']['input'];
+  model: Scalars['String']['input'];
+  promptName: Scalars['String']['input'];
+  workspaceId: Scalars['String']['input'];
+}
+
 export interface CreateCheckoutSessionInput {
   coupon: InputMaybe<Scalars['String']['input']>;
   idempotencyKey: Scalars['String']['input'];
@@ -74,6 +82,13 @@ export enum Permission {
 export enum PublicPageMode {
   Edgeless = 'Edgeless',
   Page = 'Page',
+}
+
+export interface QueryChatHistoriesInput {
+  action: InputMaybe<Scalars['Boolean']['input']>;
+  limit: InputMaybe<Scalars['Int']['input']>;
+  sessionId: InputMaybe<Scalars['String']['input']>;
+  skip: InputMaybe<Scalars['Int']['input']>;
 }
 
 export enum ServerDeploymentType {
@@ -217,6 +232,15 @@ export type CreateCheckoutSessionMutation = {
   createCheckoutSession: string;
 };
 
+export type CreateCopilotSessionMutationVariables = Exact<{
+  options: CreateChatSessionInput;
+}>;
+
+export type CreateCopilotSessionMutation = {
+  __typename?: 'Mutation';
+  createCopilotSession: string;
+};
+
 export type CreateCustomerPortalMutationVariables = Exact<{
   [key: string]: never;
 }>;
@@ -307,6 +331,49 @@ export type PasswordLimitsFragment = {
   __typename?: 'PasswordLimitsType';
   minLength: number;
   maxLength: number;
+};
+
+export type GetCopilotHistoriesQueryVariables = Exact<{
+  workspaceId: Scalars['String']['input'];
+  docId: InputMaybe<Scalars['String']['input']>;
+  options: InputMaybe<QueryChatHistoriesInput>;
+}>;
+
+export type GetCopilotHistoriesQuery = {
+  __typename?: 'Query';
+  currentUser: {
+    __typename?: 'UserType';
+    copilot: {
+      __typename?: 'Copilot';
+      histories: Array<{
+        __typename?: 'CopilotHistories';
+        sessionId: string;
+        tokens: number;
+        messages: Array<{
+          __typename?: 'ChatMessage';
+          role: string;
+          content: string;
+          attachments: Array<string> | null;
+        }>;
+      }>;
+    };
+  } | null;
+};
+
+export type GetCopilotSessionsQueryVariables = Exact<{
+  workspaceId: Scalars['String']['input'];
+}>;
+
+export type GetCopilotSessionsQuery = {
+  __typename?: 'Query';
+  currentUser: {
+    __typename?: 'UserType';
+    copilot: {
+      __typename?: 'Copilot';
+      chats: Array<string>;
+      actions: Array<string>;
+    };
+  } | null;
 };
 
 export type GetCurrentUserQueryVariables = Exact<{ [key: string]: never }>;
@@ -954,6 +1021,16 @@ export type Queries =
       response: EarlyAccessUsersQuery;
     }
   | {
+      name: 'getCopilotHistoriesQuery';
+      variables: GetCopilotHistoriesQueryVariables;
+      response: GetCopilotHistoriesQuery;
+    }
+  | {
+      name: 'getCopilotSessionsQuery';
+      variables: GetCopilotSessionsQueryVariables;
+      response: GetCopilotSessionsQuery;
+    }
+  | {
       name: 'getCurrentUserQuery';
       variables: GetCurrentUserQueryVariables;
       response: GetCurrentUserQuery;
@@ -1109,6 +1186,11 @@ export type Mutations =
       name: 'createCheckoutSessionMutation';
       variables: CreateCheckoutSessionMutationVariables;
       response: CreateCheckoutSessionMutation;
+    }
+  | {
+      name: 'createCopilotSessionMutation';
+      variables: CreateCopilotSessionMutationVariables;
+      response: CreateCopilotSessionMutation;
     }
   | {
       name: 'createCustomerPortalMutation';
