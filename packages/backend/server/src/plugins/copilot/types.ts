@@ -77,7 +77,7 @@ export const ChatHistorySchema = z
   .object({
     sessionId: z.string(),
     tokens: z.number(),
-    messages: z.array(ChatMessageSchema),
+    messages: z.array(PromptMessageSchema.or(ChatMessageSchema)),
   })
   .strict();
 
