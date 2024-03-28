@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
-import { ChatMessage } from './types';
+import { PromptMessage } from './types';
 
 @Injectable()
 export class PromptService {
@@ -22,7 +22,7 @@ export class PromptService {
    * @param name prompt name
    * @returns prompt messages
    */
-  async get(name: string): Promise<ChatMessage[]> {
+  async get(name: string): Promise<PromptMessage[]> {
     return this.db.aiPrompt
       .findUnique({
         where: {
@@ -43,7 +43,7 @@ export class PromptService {
       .then(p => p?.messages || []);
   }
 
-  async set(name: string, messages: ChatMessage[]) {
+  async set(name: string, messages: PromptMessage[]) {
     return await this.db.aiPrompt
       .create({
         data: {
@@ -56,7 +56,7 @@ export class PromptService {
       .then(ret => ret.id);
   }
 
-  async update(name: string, messages: ChatMessage[]) {
+  async update(name: string, messages: PromptMessage[]) {
     return this.db.aiPrompt
       .update({
         where: { name },

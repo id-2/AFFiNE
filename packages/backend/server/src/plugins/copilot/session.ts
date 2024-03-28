@@ -5,7 +5,7 @@ import { PrismaClient } from '@prisma/client';
 import { encoding_for_model, Tiktoken, TiktokenModel } from 'tiktoken';
 
 import { PromptService } from './prompt';
-import { ChatMessage, ChatMessageSchema } from './types';
+import { ChatMessage, ChatMessageSchema, PromptMessage } from './types';
 
 export interface ChatSessionOptions {
   userId: string;
@@ -21,7 +21,7 @@ export interface ChatSessionState extends ChatSessionOptions {
   // connect ids
   sessionId: string;
   // states
-  prompt: ChatMessage[];
+  prompt: PromptMessage[];
   messages: ChatMessage[];
 }
 
@@ -73,7 +73,7 @@ export class ChatSession implements AsyncDisposable {
     return ret;
   }
 
-  finish(): ChatMessage[] {
+  finish(): PromptMessage[] {
     const messages = this.takeMessages();
     return [...this.state.prompt, ...messages];
   }
