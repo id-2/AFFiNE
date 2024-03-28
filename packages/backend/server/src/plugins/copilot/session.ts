@@ -105,12 +105,25 @@ export class ChatSession implements AsyncDisposable {
 @Injectable()
 export class ChatSessionService {
   private readonly logger = new Logger(ChatSessionService.name);
+  // NOTE: only used for anonymous session in development
+  private readonly unsavedSessions = new Map<string, ChatSessionState>();
+
   constructor(
     private readonly db: PrismaClient,
     private readonly prompt: PromptService
   ) {}
 
   private async setSession(state: ChatSessionState): Promise<void> {
+    if (
+      !state.userId &&
+      AFFiNE.node.dev &&
+      AFFiNE.featureFlags.copilotAuthorization
+    ) {
+      // todo(@darkskygit): allow anonymous session in development
+      // remove this after the feature is stable
+      this.unsavedSessions.set(state.sessionId, state);
+      return;
+    }
     await this.db.aiSession.upsert({
       where: {
         id: state.sessionId,
@@ -172,7 +185,16 @@ export class ChatSessionService {
         },
       })
       .then(async session => {
-        if (!session) return;
+        if (!session) {
+          const publishable =
+            AFFiNE.node.dev && AFFiNE.featureFlags.copilotAuthorization;
+          if (publishable) {
+            // todo(@darkskygit): allow anonymous session in development
+            // remove this after the feature is stable
+            return this.unsavedSessions.get(sessionId);
+          }
+          return;
+        }
         const messages = ChatMessageSchema.array().safeParse(session.messages);
 
         return {
@@ -201,14 +223,19 @@ export class ChatSessionService {
     workspaceId: string,
     options?: { docId?: string; action?: boolean }
   ): Promise<number> {
-    return await this.db.aiSession.count({
-      where: {
-        userId,
-        workspaceId,
-        docId: workspaceId === options?.docId ? undefined : options?.docId,
-        action: options?.action,
-      },
-    });
+    return await this.db.aiSession
+      .count({
+        where: {
+          userId,
+          workspaceId,
+          docId: workspaceId === options?.docId ? undefined : options?.docId,
+          prompt: {
+            action: options?.action ? { not: null } : { equals: null },
+          },
+        },
+      })
+      // NOTE: only used for anonymous session in development
+      .then(count => count + this.unsavedSessions.size);
   }
 
   async listSessions(
@@ -228,7 +255,14 @@ export class ChatSessionService {
         },
         select: { id: true },
       })
-      .then(sessions => sessions.map(({ id }) => id));
+      .then(sessions => sessions.map(({ id }) => id))
+      // NOTE: only used for anonymous session in development
+      .then(ids => {
+        if (AFFiNE.node.dev && AFFiNE.featureFlags.copilotAuthorization) {
+          return ids.concat([...this.unsavedSessions.keys()]);
+        }
+        return ids;
+      });
   }
 
   async listHistories(
@@ -281,7 +315,22 @@ export class ChatSessionService {
             return undefined;
           })
           .filter((v): v is NonNullable<typeof v> => !!v)
-      );
+      )
+      // NOTE: only used for anonymous session in development
+      .then(histories => {
+        if (AFFiNE.node.dev && AFFiNE.featureFlags.copilotAuthorization) {
+          const unsaved = [...this.unsavedSessions.values()].map(state => {
+            const tokens = this.calculateTokenSize(state.messages, state.model);
+            return {
+              sessionId: state.sessionId,
+              tokens,
+              messages: state.messages,
+            };
+          });
+          return histories.concat(unsaved);
+        }
+        return histories;
+      });
   }
 
   async create(options: ChatSessionOptions): Promise<string> {
