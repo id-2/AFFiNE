@@ -284,14 +284,21 @@ export class ChatSessionService {
       AFFiNE.node.dev &&
       AFFiNE.featureFlags.copilotAuthorization
     ) {
-      return [...this.unsavedSessions.values()].map(state => {
-        const tokens = this.calculateTokenSize(state.messages, state.model);
-        return {
-          sessionId: state.sessionId,
-          tokens,
-          messages: state.messages,
-        };
-      });
+      return [...this.unsavedSessions.values()]
+        .map(state => {
+          const ret = ChatMessageSchema.array().safeParse(state.messages);
+          if (ret.success) {
+            const tokens = this.calculateTokenSize(state.messages, state.model);
+            return {
+              sessionId: state.sessionId,
+              tokens,
+              messages: ret.data,
+            };
+          }
+          console.error('Unexpected error in listHistories', ret.error);
+          return undefined;
+        })
+        .filter((v): v is NonNullable<typeof v> => !!v);
     }
 
     return await this.db.aiSession
