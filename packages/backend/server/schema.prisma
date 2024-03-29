@@ -30,7 +30,7 @@ model User {
   pagePermissions      WorkspacePageUserPermission[]
   connectedAccounts    ConnectedAccount[]
   sessions             UserSession[]
-  AiSession            AiSession[]
+  aiSession            AiSession[]
 
   @@map("users")
 }
@@ -97,7 +97,7 @@ model Workspace {
   permissions     WorkspaceUserPermission[]
   pagePermissions WorkspacePageUserPermission[]
   features        WorkspaceFeatures[]
-  AiSession       AiSession[]
+  aiSession       AiSession[]
 
   @@map("workspaces")
 }
@@ -323,7 +323,7 @@ model Snapshot {
   // but the created time of last seen update that has been merged into snapshot.
   updatedAt   DateTime @map("updated_at") @db.Timestamptz(6)
 
-  AiSession AiSession[]
+  aiSession AiSession[]
 
   @@id([id, workspaceId])
   @@map("snapshots")
@@ -449,7 +449,7 @@ model AiPrompt {
 }
 
 model AiSession {
-  id          String   @id @default(uuid()) @db.VarChar
+  id          String   @id @default(uuid()) @db.VarChar(36)
   userId      String   @map("user_id") @db.VarChar
   workspaceId String   @map("workspace_id") @db.VarChar
   docId       String   @map("doc_id") @db.VarChar
