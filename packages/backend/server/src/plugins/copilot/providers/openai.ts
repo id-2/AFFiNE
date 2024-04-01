@@ -7,6 +7,7 @@ import {
   CopilotCapability,
   CopilotProviderType,
   CopilotTextToEmbeddingProvider,
+  CopilotTextToImageProvider,
   CopilotTextToTextProvider,
   PromptMessage,
 } from '../types';
@@ -15,7 +16,10 @@ const DEFAULT_DIMENSIONS = 256;
 
 export class OpenAIProvider
   extends OpenAI
-  implements CopilotTextToTextProvider, CopilotTextToEmbeddingProvider
+  implements
+    CopilotTextToTextProvider,
+    CopilotTextToEmbeddingProvider,
+    CopilotTextToImageProvider
 {
   static readonly type = CopilotProviderType.OpenAI;
   static readonly capabilities = [
@@ -36,6 +40,8 @@ export class OpenAIProvider
     // moderation
     'text-moderation-latest',
     'text-moderation-stable',
+    // text to image
+    'dall-e-3',
   ];
 
   constructor(config: ClientOptions) {
@@ -192,5 +198,45 @@ export class OpenAIProvider
       user: options.user,
     });
     return result.data.map(e => e.embedding);
+  }
+
+  // ====== text to image ======
+  async generateImages(
+    messages: PromptMessage[],
+    model: string,
+    options: {
+      signal?: AbortSignal;
+      user?: string;
+    } = {}
+  ): Promise<Array<string>> {
+    const { content: prompt } = messages.pop() || {};
+    if (!prompt) {
+      throw new Error('Prompt is required');
+    }
+    const result = await this.images.generate(
+      {
+        prompt,
+        model,
+        response_format: 'url',
+        user: options.user,
+      },
+      { signal: options.signal }
+    );
+
+    return result.data.map(image => image.url).filter((v): v is string => !!v);
+  }
+
+  async *generateImagesStream(
+    messages: PromptMessage[],
+    model: string,
+    options: {
+      signal?: AbortSignal;
+      user?: string;
+    } = {}
+  ): AsyncIterable<string> {
+    const ret = await this.generateImages(messages, model, options);
+    for (const url of ret) {
+      yield url;
+    }
   }
 }
