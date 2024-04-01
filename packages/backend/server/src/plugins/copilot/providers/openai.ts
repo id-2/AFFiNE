@@ -203,7 +203,7 @@ export class OpenAIProvider
   // ====== text to image ======
   async generateImages(
     messages: PromptMessage[],
-    model: string,
+    model: string = 'dall-e-3',
     options: {
       signal?: AbortSignal;
       user?: string;
@@ -228,7 +228,7 @@ export class OpenAIProvider
 
   async *generateImagesStream(
     messages: PromptMessage[],
-    model: string,
+    model: string = 'dall-e-3',
     options: {
       signal?: AbortSignal;
       user?: string;
