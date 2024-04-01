@@ -3,42 +3,25 @@ import { randomUUID } from 'node:crypto';
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
+import { ChatMessageCache } from './message';
 import { ChatPrompt, PromptService } from './prompt';
 import {
   AvailableModel,
   ChatHistory,
   ChatMessage,
   ChatMessageSchema,
+  ChatSessionOptions,
+  ChatSessionState,
   getTokenEncoder,
+  ListHistoriesOptions,
   PromptMessage,
   PromptParams,
+  SubmittedMessage,
 } from './types';
-
-export interface ChatSessionOptions {
-  userId: string;
-  workspaceId: string;
-  docId: string;
-  promptName: string;
-}
-
-export interface ChatSessionState
-  extends Omit<ChatSessionOptions, 'promptName'> {
-  // connect ids
-  sessionId: string;
-  // states
-  prompt: ChatPrompt;
-  messages: ChatMessage[];
-}
-
-export type ListHistoriesOptions = {
-  action: boolean | undefined;
-  limit: number | undefined;
-  skip: number | undefined;
-  sessionId: string | undefined;
-};
 
 export class ChatSession implements AsyncDisposable {
   constructor(
+    private readonly messageCache: ChatMessageCache,
     private readonly state: ChatSessionState,
     private readonly dispose?: (state: ChatSessionState) => Promise<void>,
     private readonly maxTokenSize = 3840
@@ -57,6 +40,21 @@ export class ChatSession implements AsyncDisposable {
       throw new Error('Action has been taken, no more messages allowed');
     }
     this.state.messages.push(message);
+  }
+
+  async pushByMessageId(messageId: string) {
+    const message = await this.messageCache.get(messageId);
+    if (!message || message.sessionId !== this.state.sessionId) {
+      throw new Error(`Message not found: ${messageId}`);
+    }
+
+    this.push({
+      role: 'user',
+      content: message.content,
+      attachments: message.attachments,
+      params: message.params,
+      createdAt: new Date(),
+    });
   }
 
   pop() {
@@ -108,6 +106,7 @@ export class ChatSessionService {
 
   constructor(
     private readonly db: PrismaClient,
+    private readonly messageCache: ChatMessageCache,
     private readonly prompt: PromptService
   ) {}
 
@@ -307,6 +306,10 @@ export class ChatSessionService {
     return sessionId;
   }
 
+  async createMessage(message: SubmittedMessage): Promise<string | undefined> {
+    return await this.messageCache.set(message);
+  }
+
   /**
    * usage:
    * ``` typescript
@@ -323,7 +326,7 @@ export class ChatSessionService {
   async get(sessionId: string): Promise<ChatSession | null> {
     const state = await this.getSession(sessionId);
     if (state) {
-      return new ChatSession(state, async state => {
+      return new ChatSession(this.messageCache, state, async state => {
         await this.setSession(state);
       });
     }
