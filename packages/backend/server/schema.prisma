@@ -433,8 +433,7 @@ enum AiPromptRole {
 }
 
 model AiPromptMessage {
-  id        String       @id @default(uuid()) @db.VarChar
-  promptId  String       @map("prompt_id") @db.VarChar
+  promptId  Int          @map("prompt_id") @db.Integer
   // if a group of prompts contains multiple sentences, idx specifies the order of each sentence
   idx       Int          @db.Integer
   // system/assistant/user
@@ -445,12 +444,12 @@ model AiPromptMessage {
 
   prompt AiPrompt @relation(fields: [promptId], references: [id], onDelete: Cascade)
 
-  @@unique([id, idx])
+  @@unique([promptId, idx])
   @@map("ai_prompts_messages")
 }
 
 model AiPrompt {
-  id        String   @id @default(uuid()) @db.VarChar
+  id        Int      @id @default(autoincrement()) @db.Integer
   name      String   @unique @db.VarChar
   // an mark identifying which view to use to display the session
   // it is only used in the frontend and does not affect the backend

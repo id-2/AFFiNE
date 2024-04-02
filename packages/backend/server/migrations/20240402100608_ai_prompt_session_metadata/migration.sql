@@ -22,19 +22,16 @@ DROP TABLE "ai_sessions";
 
 -- CreateTable
 CREATE TABLE "ai_prompts_messages" (
-    "id" VARCHAR NOT NULL,
-    "prompt_id" VARCHAR NOT NULL,
+    "prompt_id" INTEGER NOT NULL,
     "idx" INTEGER NOT NULL,
     "role" "AiPromptRole" NOT NULL,
     "content" TEXT NOT NULL,
-    "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "ai_prompts_messages_pkey" PRIMARY KEY ("id")
+    "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- CreateTable
 CREATE TABLE "ai_prompts_metadata" (
-    "id" VARCHAR NOT NULL,
+    "id" SERIAL NOT NULL,
     "name" VARCHAR NOT NULL,
     "action" VARCHAR,
     "model" VARCHAR,
@@ -68,7 +65,7 @@ CREATE TABLE "ai_sessions_metadata" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "ai_prompts_messages_id_idx_key" ON "ai_prompts_messages"("id", "idx");
+CREATE UNIQUE INDEX "ai_prompts_messages_prompt_id_idx_key" ON "ai_prompts_messages"("prompt_id", "idx");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "ai_prompts_metadata_name_key" ON "ai_prompts_metadata"("name");
