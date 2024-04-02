@@ -19,6 +19,7 @@ export interface ChatSessionOptions {
   promptName: string;
   // options
   action: boolean;
+  flavor: string;
   model: TiktokenModel;
 }
 
@@ -115,6 +116,7 @@ export class ChatSessionService {
       create: {
         id: state.sessionId,
         action: state.action,
+        flavor: state.flavor,
         model: state.model,
         messages: { create: state.messages },
         // connect
@@ -148,6 +150,7 @@ export class ChatSessionService {
           docId: session.docId,
           promptName: session.promptName,
           action: session.action,
+          flavor: session.flavor,
           model: session.model as TiktokenModel,
           prompt: await this.prompt.get(session.promptName),
           messages: messages.success ? messages.data : [],
