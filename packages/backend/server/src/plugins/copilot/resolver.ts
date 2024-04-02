@@ -33,11 +33,7 @@ import {
 
 registerEnumType(AvailableModels, { name: 'CopilotModel' });
 
-@ObjectType('Copilot')
-export class CopilotType {
-  @Field(() => ID)
-  workspaceId!: string;
-}
+// ================== Input Types ==================
 
 @InputType()
 class CreateChatSessionInput {
@@ -47,13 +43,24 @@ class CreateChatSessionInput {
   @Field(() => String)
   docId!: string;
 
-  @Field(() => Boolean)
+  @Field(() => Boolean, {
+    description: 'Whether the session is for action',
+  })
   action!: boolean;
 
-  @Field(() => String)
+  @Field(() => String, {
+    description: 'An mark identifying which view to use to display the session',
+  })
+  flavor!: string;
+
+  @Field(() => String, {
+    description: 'The model to use for the session',
+  })
   model!: AvailableModel;
 
-  @Field(() => String)
+  @Field(() => String, {
+    description: 'The prompt name to use for the session',
+  })
   promptName!: string;
 }
 
@@ -71,6 +78,8 @@ class QueryChatHistoriesInput implements Partial<ListHistoriesOptions> {
   @Field(() => String, { nullable: true })
   sessionId: string | undefined;
 }
+
+// ================== Return Types ==================
 
 @ObjectType('ChatMessage')
 class ChatMessageType implements Partial<ChatMessage> {
@@ -106,6 +115,14 @@ class CopilotQuotaType {
 
   @Field(() => SafeIntResolver)
   used!: number;
+}
+
+// ================== Resolver ==================
+
+@ObjectType('Copilot')
+export class CopilotType {
+  @Field(() => ID)
+  workspaceId!: string;
 }
 
 @Resolver(() => CopilotType)

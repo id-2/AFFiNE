@@ -34,9 +34,17 @@ type CopilotQuota {
 }
 
 input CreateChatSessionInput {
+  """Whether the session is for action"""
   action: Boolean!
   docId: String!
+
+  """An mark identifying which view to use to display the session"""
+  flavor: String!
+
+  """The model to use for the session"""
   model: String!
+
+  """The prompt name to use for the session"""
   promptName: String!
   workspaceId: String!
 }
