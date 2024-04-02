@@ -65,6 +65,8 @@ export const PromptMessageSchema = z.object({
 
 export type PromptMessage = z.infer<typeof PromptMessageSchema>;
 
+export type PromptParams = NonNullable<PromptMessage['params']>;
+
 export const ChatMessageSchema = PromptMessageSchema.extend({
   createdAt: z.date(),
 }).strict();

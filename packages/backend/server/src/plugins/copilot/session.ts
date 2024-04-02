@@ -4,7 +4,12 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
 import { ChatPrompt, PromptService } from './prompt';
-import { ChatMessage, ChatMessageSchema, PromptMessage } from './types';
+import {
+  ChatMessage,
+  ChatMessageSchema,
+  PromptMessage,
+  PromptParams,
+} from './types';
 
 export interface ChatSessionOptions {
   userId: string;
@@ -65,9 +70,9 @@ export class ChatSession implements AsyncDisposable {
     return ret;
   }
 
-  finish(): PromptMessage[] {
+  finish(params: PromptParams): PromptMessage[] {
     const messages = this.takeMessages();
-    return [...this.state.prompt.finish(), ...messages];
+    return [...this.state.prompt.finish(params), ...messages];
   }
 
   async save() {

@@ -3,7 +3,12 @@ import { AiPrompt, PrismaClient } from '@prisma/client';
 import Mustache from 'mustache';
 import { Tiktoken } from 'tiktoken';
 
-import { getTokenEncoder, PromptMessage, PromptMessageSchema } from './types';
+import {
+  getTokenEncoder,
+  PromptMessage,
+  PromptMessageSchema,
+  PromptParams,
+} from './types';
 
 // disable escaping
 Mustache.escape = (text: string) => text;
@@ -19,8 +24,6 @@ function extractMustacheParams(template: string) {
 
   return Array.from(new Set(params));
 }
-
-type PromptParams = NonNullable<PromptMessage['params']>;
 
 export class ChatPrompt {
   public readonly encoder?: Tiktoken;
@@ -104,7 +107,7 @@ export class ChatPrompt {
    * @param params record of params, e.g. { name: 'Alice' }
    * @returns e.g. [{ role: 'system', content: 'Hello, {{name}}' }] => [{ role: 'system', content: 'Hello, Alice' }]
    */
-  finish(params: PromptParams = {}) {
+  finish(params: PromptParams) {
     this.checkParams(params);
     return this.messages.map(m => ({
       ...m,
