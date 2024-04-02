@@ -4,22 +4,16 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { encoding_for_model, Tiktoken, TiktokenModel } from 'tiktoken';
 
-import { SessionCache } from '../../fundamentals';
 import { PromptService } from './prompt';
 import { ChatMessage, ChatMessageSchema } from './types';
 
-const CHAT_SESSION_KEY = 'chat-session';
-const CHAT_SESSION_TTL = 3600 * 12 * 1000; // 12 hours
-
 export interface ChatSessionOptions {
-  // connect ids
   userId: string;
   workspaceId: string;
   docId: string;
   promptName: string;
   // options
-  action: boolean;
-  flavor: string;
+  action: string | null;
   model: TiktokenModel;
 }
 
@@ -99,7 +93,6 @@ export class ChatSessionService {
   private readonly logger = new Logger(ChatSessionService.name);
   constructor(
     private readonly db: PrismaClient,
-    private readonly cache: SessionCache,
     private readonly prompt: PromptService
   ) {}
 
@@ -115,19 +108,19 @@ export class ChatSessionService {
       },
       create: {
         id: state.sessionId,
-        action: state.action,
-        flavor: state.flavor,
-        model: state.model,
         messages: { create: state.messages },
         // connect
         user: { connect: { id: state.userId } },
         workspace: { connect: { id: state.workspaceId } },
         doc: {
           connect: {
-            id_workspaceId: { id: state.docId, workspaceId: state.workspaceId },
+            id_workspaceId: {
+              id: state.docId,
+              workspaceId: state.workspaceId,
+            },
           },
         },
-        promptName: state.promptName,
+        prompt: { connect: { name: state.promptName } },
       },
     });
   }
@@ -138,6 +131,29 @@ export class ChatSessionService {
     return await this.db.aiSession
       .findUnique({
         where: { id: sessionId },
+        select: {
+          id: true,
+          userId: true,
+          workspaceId: true,
+          docId: true,
+          messages: true,
+          prompt: {
+            select: {
+              name: true,
+              action: true,
+              model: true,
+              messages: {
+                select: {
+                  role: true,
+                  content: true,
+                },
+                orderBy: {
+                  idx: 'asc',
+                },
+              },
+            },
+          },
+        },
       })
       .then(async session => {
         if (!session) return;
@@ -148,33 +164,13 @@ export class ChatSessionService {
           userId: session.userId,
           workspaceId: session.workspaceId,
           docId: session.docId,
-          promptName: session.promptName,
-          action: session.action,
-          flavor: session.flavor,
-          model: session.model as TiktokenModel,
-          prompt: await this.prompt.get(session.promptName),
+          promptName: session.prompt.name,
+          action: session.prompt.action,
+          model: session.prompt.model as TiktokenModel,
+          prompt: session.prompt.messages || [],
           messages: messages.success ? messages.data : [],
         };
       });
-  }
-
-  private async setState(state: ChatSessionState): Promise<void> {
-    await Promise.all([
-      this.cache.set(`${CHAT_SESSION_KEY}:${state.sessionId}`, state, {
-        ttl: CHAT_SESSION_TTL,
-      }),
-      this.setSession(state),
-    ]);
-  }
-
-  private async getState(
-    sessionId: string
-  ): Promise<ChatSessionState | undefined> {
-    const state = await this.cache.get<ChatSessionState>(
-      `${CHAT_SESSION_KEY}:${sessionId}`
-    );
-    if (state) return state;
-    return await this.getSession(sessionId);
   }
 
   async create(options: ChatSessionOptions): Promise<string> {
@@ -183,7 +179,7 @@ export class ChatSessionService {
     if (!prompt.length) {
       this.logger.warn(`Prompt not found: ${options.promptName}`);
     }
-    await this.setState({
+    await this.setSession({
       ...options,
       sessionId,
       prompt,
@@ -197,21 +193,19 @@ export class ChatSessionService {
    * ``` typescript
    * {
    *     // allocate a session, can be reused chat in about 12 hours with same session
-   *     await using session = await session.getOrCreate(sessionId, promptName, model);
+   *     await using session = await session.get(sessionId);
    *     session.push(message);
    *     copilot.generateText(session.finish(), model);
    * }
    * // session will be disposed after the block
    * @param sessionId session id
-   * @param promptName prompt name
-   * @param model model name, used to estimate token size
    * @returns
    */
   async get(sessionId: string): Promise<ChatSession | null> {
-    const state = await this.getState(sessionId);
+    const state = await this.getSession(sessionId);
     if (state) {
       return new ChatSession(state, state.model, async state => {
-        await this.setState(state);
+        await this.setSession(state);
       });
     }
     return null;

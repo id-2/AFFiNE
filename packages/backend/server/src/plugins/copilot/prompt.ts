@@ -23,50 +23,55 @@ export class PromptService {
    * @returns prompt messages
    */
   async get(name: string): Promise<ChatMessage[]> {
-    return this.db.aiPrompt.findMany({
-      where: {
-        name,
-      },
-      select: {
-        role: true,
-        content: true,
-      },
-      orderBy: {
-        idx: 'asc',
-      },
-    });
+    return this.db.aiPrompt
+      .findUnique({
+        where: {
+          name,
+        },
+        select: {
+          messages: {
+            select: {
+              role: true,
+              content: true,
+            },
+            orderBy: {
+              createdAt: 'asc',
+            },
+          },
+        },
+      })
+      .then(p => p?.messages || []);
   }
 
   async set(name: string, messages: ChatMessage[]) {
-    return this.db.$transaction(async tx => {
-      const prompts = await tx.aiPrompt.count({ where: { name } });
-      if (prompts > 0) {
-        return 0;
-      }
-      return tx.aiPrompt
-        .createMany({
-          data: messages.map((m, idx) => ({ name, idx, ...m })),
-        })
-        .then(ret => ret.count);
-    });
+    return await this.db.aiPrompt
+      .create({
+        data: {
+          name,
+          messages: {
+            create: messages.map((m, idx) => ({ name, idx, ...m })),
+          },
+        },
+      })
+      .then(ret => ret.id);
   }
 
   async update(name: string, messages: ChatMessage[]) {
-    return this.db.$transaction(async tx => {
-      await tx.aiPrompt.deleteMany({ where: { name } });
-      return tx.aiPrompt
-        .createMany({
-          data: messages.map((m, idx) => ({ name, idx, ...m })),
-        })
-        .then(ret => ret.count);
-    });
+    return this.db.aiPrompt
+      .update({
+        where: { name },
+        data: {
+          messages: {
+            // cleanup old messages
+            deleteMany: {},
+            create: messages.map((m, idx) => ({ idx, ...m })),
+          },
+        },
+      })
+      .then(ret => ret.id);
   }
 
   async delete(name: string) {
-    return this.db.aiPrompt
-      .deleteMany({
-        where: { name },
-      })
-      .then(ret => ret.count);
+    return this.db.aiPrompt.delete({ where: { name } }).then(ret => ret.id);
   }
 }
