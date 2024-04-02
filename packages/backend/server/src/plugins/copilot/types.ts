@@ -1,6 +1,11 @@
 import { AiPromptRole } from '@prisma/client';
 import type { ClientOptions as OpenAIClientOptions } from 'openai';
-import { TiktokenModel } from 'tiktoken';
+import {
+  encoding_for_model,
+  get_encoding,
+  Tiktoken,
+  TiktokenModel,
+} from 'tiktoken';
 import { z } from 'zod';
 
 export interface CopilotConfig {
@@ -26,14 +31,17 @@ export enum AvailableModels {
 
 export type AvailableModel = keyof typeof AvailableModels;
 
-export function AvailableModelToTiktokenModel(
-  model: AvailableModel
-): TiktokenModel {
-  const modelStr = AvailableModels[model];
+export function getTokenEncoder(model?: string | null): Tiktoken | undefined {
+  if (!model) return undefined;
+  const modelStr = AvailableModels[model as AvailableModel];
+  if (!modelStr) return undefined;
   if (modelStr.startsWith('gpt')) {
-    return modelStr as TiktokenModel;
+    return encoding_for_model(modelStr as TiktokenModel);
+  } else if (modelStr.startsWith('dall')) {
+    // dalle don't need to calc the token
+    return undefined;
   } else {
-    return 'cl100k_base' as TiktokenModel;
+    return get_encoding('cl100k_base');
   }
 }
 

@@ -2,9 +2,8 @@ import { randomUUID } from 'node:crypto';
 
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
-import { encoding_for_model, Tiktoken, TiktokenModel } from 'tiktoken';
 
-import { PromptService } from './prompt';
+import { ChatPrompt, PromptService } from './prompt';
 import { ChatMessage, ChatMessageSchema, PromptMessage } from './types';
 
 export interface ChatSessionOptions {
@@ -12,36 +11,26 @@ export interface ChatSessionOptions {
   workspaceId: string;
   docId: string;
   promptName: string;
-  // options
-  action: string | null;
-  model: TiktokenModel;
 }
 
-export interface ChatSessionState extends ChatSessionOptions {
+export interface ChatSessionState
+  extends Omit<ChatSessionOptions, 'promptName'> {
   // connect ids
   sessionId: string;
   // states
-  prompt: PromptMessage[];
+  prompt: ChatPrompt;
   messages: ChatMessage[];
 }
 
 export class ChatSession implements AsyncDisposable {
-  private readonly encoder: Tiktoken;
-  private readonly promptTokenSize: number;
   constructor(
     private readonly state: ChatSessionState,
-    model: TiktokenModel,
     private readonly dispose?: (state: ChatSessionState) => Promise<void>,
     private readonly maxTokenSize = 3840
-  ) {
-    this.encoder = encoding_for_model(model);
-    this.promptTokenSize = this.encoder.encode_ordinary(
-      state.prompt?.map(m => m.content).join('') || ''
-    ).length;
-  }
+  ) {}
 
   get model() {
-    return this.state.model;
+    return this.state.prompt.model;
   }
 
   push(message: ChatMessage) {
@@ -53,29 +42,32 @@ export class ChatSession implements AsyncDisposable {
   }
 
   private takeMessages(): ChatMessage[] {
-    if (this.state.action) {
+    if (this.state.prompt.action) {
       const messages = this.state.messages;
       return messages.slice(messages.length - 1);
     }
     const ret = [];
-    const messages = [...this.state.messages];
-    messages.reverse();
-    let size = this.promptTokenSize;
-    for (const message of messages) {
-      const tokenSize = this.encoder.encode_ordinary(message.content).length;
-      if (size + tokenSize > this.maxTokenSize) {
+    const messages = this.state.messages.slice();
+
+    let size = this.state.prompt.tokens;
+    while (messages.length) {
+      const message = messages.pop();
+      if (!message) break;
+
+      size += this.state.prompt.encode(message.content);
+      if (size > this.maxTokenSize) {
         break;
       }
       ret.push(message);
-      size += tokenSize;
     }
     ret.reverse();
+
     return ret;
   }
 
   finish(): PromptMessage[] {
     const messages = this.takeMessages();
-    return [...this.state.prompt, ...messages];
+    return [...this.state.prompt.finish(), ...messages];
   }
 
   async save() {
@@ -83,7 +75,7 @@ export class ChatSession implements AsyncDisposable {
   }
 
   async [Symbol.asyncDispose]() {
-    this.encoder.free();
+    this.state.prompt.free();
     await this.save?.();
   }
 }
@@ -120,7 +112,7 @@ export class ChatSessionService {
             },
           },
         },
-        prompt: { connect: { name: state.promptName } },
+        prompt: { connect: { name: state.prompt.name } },
       },
     });
   }
@@ -164,10 +156,7 @@ export class ChatSessionService {
           userId: session.userId,
           workspaceId: session.workspaceId,
           docId: session.docId,
-          promptName: session.prompt.name,
-          action: session.prompt.action,
-          model: session.prompt.model as TiktokenModel,
-          prompt: session.prompt.messages || [],
+          prompt: ChatPrompt.createFromPrompt(session.prompt),
           messages: messages.success ? messages.data : [],
         };
       });
@@ -176,15 +165,10 @@ export class ChatSessionService {
   async create(options: ChatSessionOptions): Promise<string> {
     const sessionId = randomUUID();
     const prompt = await this.prompt.get(options.promptName);
-    if (!prompt.length) {
-      this.logger.warn(`Prompt not found: ${options.promptName}`);
+    if (!prompt) {
+      throw new Error(`Prompt not found: ${options.promptName}`);
     }
-    await this.setSession({
-      ...options,
-      sessionId,
-      prompt,
-      messages: [],
-    });
+    await this.setSession({ ...options, sessionId, prompt, messages: [] });
     return sessionId;
   }
 
@@ -204,7 +188,7 @@ export class ChatSessionService {
   async get(sessionId: string): Promise<ChatSession | null> {
     const state = await this.getSession(sessionId);
     if (state) {
-      return new ChatSession(state, state.model, async state => {
+      return new ChatSession(state, async state => {
         await this.setSession(state);
       });
     }
