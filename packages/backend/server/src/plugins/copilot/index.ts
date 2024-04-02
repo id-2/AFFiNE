@@ -1,4 +1,5 @@
 import { ServerFeature } from '../../core/config';
+import { PermissionService } from '../../core/workspaces/permission';
 import { Plugin } from '../registry';
 import { PromptService } from './prompt';
 import {
@@ -13,7 +14,12 @@ registerCopilotProvider(OpenAIProvider);
 
 @Plugin({
   name: 'copilot',
-  providers: [ChatSessionService, PromptService, ProviderService],
+  providers: [
+    PermissionService,
+    ChatSessionService,
+    PromptService,
+    ProviderService,
+  ],
   contributesTo: ServerFeature.Copilot,
   if: config => {
     if (config.flavor.graphql) {
