@@ -1,12 +1,32 @@
 import { Injectable } from '@nestjs/common';
 import { AiPrompt, PrismaClient } from '@prisma/client';
+import Mustache from 'mustache';
 import { Tiktoken } from 'tiktoken';
 
-import { getTokenEncoder, PromptMessage } from './types';
+import { getTokenEncoder, PromptMessage, PromptMessageSchema } from './types';
+
+// disable escaping
+Mustache.escape = (text: string) => text;
+
+function extractMustacheParams(template: string) {
+  const regex = /\{\{\s*([^{}]+)\s*\}\}/g;
+  const params = [];
+  let match;
+
+  while ((match = regex.exec(template)) !== null) {
+    params.push(match[1]);
+  }
+
+  return Array.from(new Set(params));
+}
+
+type PromptParams = NonNullable<PromptMessage['params']>;
 
 export class ChatPrompt {
   public readonly encoder?: Tiktoken;
   private readonly promptTokenSize: number;
+  private readonly templateParamKeys: string[] = [];
+  private readonly templateParams: PromptParams = {};
 
   static createFromPrompt(
     options: Omit<AiPrompt, 'id' | 'createdAt'> & {
@@ -31,18 +51,51 @@ export class ChatPrompt {
     this.promptTokenSize =
       this.encoder?.encode_ordinary(messages.map(m => m.content).join('') || '')
         .length || 0;
+    this.templateParamKeys = extractMustacheParams(
+      messages.map(m => m.content).join('')
+    );
+    this.templateParams = messages.reduce(
+      (acc, m) => Object.assign(acc, m.params),
+      {} as PromptParams
+    );
   }
 
   get tokens() {
     return this.promptTokenSize;
   }
 
+  get paramKeys() {
+    return this.templateParamKeys.slice();
+  }
+
+  get params() {
+    return { ...this.templateParams };
+  }
+
   encode(message: string) {
     return this.encoder?.encode_ordinary(message).length || 0;
   }
 
-  finish() {
-    return this.messages.slice();
+  private checkParams(params: PromptParams) {
+    const selfParams = this.templateParams;
+    for (const key of Object.keys(selfParams)) {
+      const options = selfParams[key];
+      const income = params[key];
+      if (
+        typeof income !== 'string' ||
+        (Array.isArray(options) && !options.includes(income))
+      ) {
+        throw new Error(`Invalid param: ${key}`);
+      }
+    }
+  }
+
+  finish(params: PromptParams = {}) {
+    this.checkParams(params);
+    return this.messages.map(m => ({
+      ...m,
+      content: Mustache.render(m.content, params),
+    }));
   }
 
   free() {
@@ -83,6 +136,7 @@ export class PromptService {
             select: {
               role: true,
               content: true,
+              params: true,
             },
             orderBy: {
               createdAt: 'asc',
@@ -90,7 +144,13 @@ export class PromptService {
           },
         },
       })
-      .then(p => p && ChatPrompt.createFromPrompt(p));
+      .then(p => {
+        const messages = PromptMessageSchema.array().safeParse(p?.messages);
+        if (p && messages.success) {
+          return ChatPrompt.createFromPrompt({ ...p, messages: messages.data });
+        }
+        return null;
+      });
   }
 
   async set(name: string, messages: PromptMessage[]) {
@@ -99,7 +159,11 @@ export class PromptService {
         data: {
           name,
           messages: {
-            create: messages.map((m, idx) => ({ idx, ...m })),
+            create: messages.map((m, idx) => ({
+              idx,
+              ...m,
+              params: m.params || undefined,
+            })),
           },
         },
       })
@@ -114,7 +178,11 @@ export class PromptService {
           messages: {
             // cleanup old messages
             deleteMany: {},
-            create: messages.map((m, idx) => ({ idx, ...m })),
+            create: messages.map((m, idx) => ({
+              idx,
+              ...m,
+              params: m.params || undefined,
+            })),
           },
         },
       })

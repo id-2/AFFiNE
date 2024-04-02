@@ -57,6 +57,10 @@ export const PromptMessageSchema = z.object({
   role: z.enum(ChatMessageRole),
   content: z.string(),
   attachments: z.array(z.string()).optional(),
+  params: z
+    .record(z.union([z.string(), z.array(z.string())]))
+    .optional()
+    .nullable(),
 });
 
 export type PromptMessage = z.infer<typeof PromptMessageSchema>;
