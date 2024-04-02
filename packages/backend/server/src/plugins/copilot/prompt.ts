@@ -60,14 +60,23 @@ export class ChatPrompt {
     );
   }
 
+  /**
+   * get prompt token size
+   */
   get tokens() {
     return this.promptTokenSize;
   }
 
+  /**
+   * get prompt param keys in template
+   */
   get paramKeys() {
     return this.templateParamKeys.slice();
   }
 
+  /**
+   * get prompt params
+   */
   get params() {
     return { ...this.templateParams };
   }
@@ -90,6 +99,11 @@ export class ChatPrompt {
     }
   }
 
+  /**
+   * render prompt messages with params
+   * @param params record of params, e.g. { name: 'Alice' }
+   * @returns e.g. [{ role: 'system', content: 'Hello, {{name}}' }] => [{ role: 'system', content: 'Hello, Alice' }]
+   */
   finish(params: PromptParams = {}) {
     this.checkParams(params);
     return this.messages.map(m => ({
