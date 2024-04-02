@@ -225,7 +225,7 @@ export class CopilotResolver {
       return new ForbiddenException('Login required');
     }
 
-    const lockFlag = `invite:${user?.id}:${options.workspaceId}`;
+    const lockFlag = `session:${user?.id}:${options.workspaceId}`;
     await using lock = await this.mutex.lock(lockFlag);
     if (!lock) {
       return new TooManyRequestsException('Server is busy');
