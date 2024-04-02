@@ -44,7 +44,8 @@ export class CopilotController {
     @CurrentUser() user: CurrentUser,
     @Req() req: Request,
     @Param('sessionId') sessionId: string,
-    @Query('message') content: string
+    @Query('message') content: string,
+    @Query() params: Record<string, string | string[]>
   ): Promise<string> {
     const provider = this.provider.getProviderByCapability(
       CopilotCapability.TextToText
@@ -66,8 +67,9 @@ export class CopilotController {
     });
 
     try {
+      delete params.message;
       const content = await provider.generateText(
-        session.finish(),
+        session.finish(params),
         session.model,
         {
           signal: req.signal,
@@ -96,7 +98,8 @@ export class CopilotController {
     @CurrentUser() user: CurrentUser,
     @Req() req: Request,
     @Param('sessionId') sessionId: string,
-    @Query('message') content: string
+    @Query('message') content: string,
+    @Query() params: Record<string, string>
   ): Promise<Observable<ChatEvent>> {
     const provider = this.provider.getProviderByCapability(
       CopilotCapability.TextToText
@@ -117,8 +120,9 @@ export class CopilotController {
       createdAt: new Date(),
     });
 
+    delete params.message;
     return from(
-      provider.generateTextStream(session.finish(), session.model, {
+      provider.generateTextStream(session.finish(params), session.model, {
         signal: req.signal,
         user: user.id,
       })

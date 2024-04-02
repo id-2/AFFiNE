@@ -136,7 +136,7 @@ export class OpenAIProvider
 
   async *generateTextStream(
     messages: PromptMessage[],
-    model: string,
+    model: string = 'gpt-3.5-turbo',
     options: {
       temperature?: number;
       maxTokens?: number;

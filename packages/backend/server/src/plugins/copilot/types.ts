@@ -105,8 +105,8 @@ export interface CopilotProvider {
 export interface CopilotTextToTextProvider extends CopilotProvider {
   generateText(
     messages: PromptMessage[],
-    model: string,
-    options: {
+    model?: string,
+    options?: {
       temperature?: number;
       maxTokens?: number;
       signal?: AbortSignal;
@@ -115,8 +115,8 @@ export interface CopilotTextToTextProvider extends CopilotProvider {
   ): Promise<string>;
   generateTextStream(
     messages: PromptMessage[],
-    model: string,
-    options: {
+    model?: string,
+    options?: {
       temperature?: number;
       maxTokens?: number;
       signal?: AbortSignal;
