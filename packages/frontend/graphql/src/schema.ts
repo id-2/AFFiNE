@@ -42,12 +42,9 @@ export interface CreateChatMessageInput {
 }
 
 export interface CreateChatSessionInput {
-  /** An mark identifying which view to use to display the session */
-  action: InputMaybe<Scalars['Boolean']['input']>;
+  action: Scalars['Boolean']['input'];
   docId: Scalars['String']['input'];
-  /** The model to use for the session */
   model: Scalars['String']['input'];
-  /** The prompt name to use for the session */
   promptName: Scalars['String']['input'];
   workspaceId: Scalars['String']['input'];
 }
@@ -341,6 +338,44 @@ export type PasswordLimitsFragment = {
   __typename?: 'PasswordLimitsType';
   minLength: number;
   maxLength: number;
+};
+
+export type GetCopilotAnonymousHistoriesQueryVariables = Exact<{
+  workspaceId: Scalars['String']['input'];
+  docId: InputMaybe<Scalars['String']['input']>;
+  options: InputMaybe<QueryChatHistoriesInput>;
+}>;
+
+export type GetCopilotAnonymousHistoriesQuery = {
+  __typename?: 'Query';
+  copilotAnonymous: {
+    __typename?: 'Copilot';
+    histories: Array<{
+      __typename?: 'CopilotHistories';
+      sessionId: string;
+      tokens: number;
+      messages: Array<{
+        __typename?: 'ChatMessage';
+        role: string;
+        content: string;
+        attachments: Array<string> | null;
+        createdAt: string | null;
+      }>;
+    }>;
+  };
+};
+
+export type GetCopilotAnonymousSessionsQueryVariables = Exact<{
+  workspaceId: Scalars['String']['input'];
+}>;
+
+export type GetCopilotAnonymousSessionsQuery = {
+  __typename?: 'Query';
+  copilotAnonymous: {
+    __typename?: 'Copilot';
+    chats: Array<string>;
+    actions: Array<string>;
+  };
 };
 
 export type GetCopilotHistoriesQueryVariables = Exact<{
@@ -1046,6 +1081,16 @@ export type Queries =
       name: 'earlyAccessUsersQuery';
       variables: EarlyAccessUsersQueryVariables;
       response: EarlyAccessUsersQuery;
+    }
+  | {
+      name: 'getCopilotAnonymousHistoriesQuery';
+      variables: GetCopilotAnonymousHistoriesQueryVariables;
+      response: GetCopilotAnonymousHistoriesQuery;
+    }
+  | {
+      name: 'getCopilotAnonymousSessionsQuery';
+      variables: GetCopilotAnonymousSessionsQueryVariables;
+      response: GetCopilotAnonymousSessionsQuery;
     }
   | {
       name: 'getCopilotHistoriesQuery';
