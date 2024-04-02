@@ -440,6 +440,7 @@ model AiPromptMessage {
   role      AiPromptRole
   // prompt content
   content   String       @db.Text
+  params    Json?        @db.Json
   createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
 
   prompt AiPrompt @relation(fields: [promptId], references: [id], onDelete: Cascade)
@@ -473,7 +474,7 @@ model AiSessionMessage {
 
   session AiSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
-  @@map("ai_session_messages")
+  @@map("ai_sessions_messages")
 }
 
 model AiSession {
