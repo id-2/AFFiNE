@@ -266,6 +266,7 @@ query getCopilotAnonymousHistories($workspaceId: String!, $docId: String, $optio
         role
         content
         attachments
+        createdAt
       }
     }
   }
@@ -302,7 +303,26 @@ query getCopilotHistories($workspaceId: String!, $docId: String, $options: Query
           role
           content
           attachments
+          createdAt
         }
+      }
+    }
+  }
+}`,
+};
+
+export const getCopilotQuotaQuery = {
+  id: 'getCopilotQuotaQuery' as const,
+  operationName: 'getCopilotQuota',
+  definitionName: 'currentUser',
+  containsFile: false,
+  query: `
+query getCopilotQuota($workspaceId: String!, $docId: String!) {
+  currentUser {
+    copilot(workspaceId: $workspaceId) {
+      quota(docId: $docId) {
+        limit
+        used
       }
     }
   }
@@ -318,8 +338,8 @@ export const getCopilotSessionsQuery = {
 query getCopilotSessions($workspaceId: String!) {
   currentUser {
     copilot(workspaceId: $workspaceId) {
-      chats
       actions
+      chats
     }
   }
 }`,

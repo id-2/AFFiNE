@@ -16,6 +16,9 @@ type Copilot {
   """Get the session list of chats in the workspace"""
   chats: [String!]!
   histories(docId: String, options: QueryChatHistoriesInput): [CopilotHistories!]!
+
+  """Get the quota of the user in the workspace"""
+  quota(docId: String!): CopilotQuota!
   workspaceId: ID!
 }
 
@@ -23,6 +26,11 @@ type CopilotHistories {
   messages: [ChatMessage!]!
   sessionId: String!
   tokens: Int!
+}
+
+type CopilotQuota {
+  limit: SafeInt!
+  used: SafeInt!
 }
 
 input CreateChatSessionInput {

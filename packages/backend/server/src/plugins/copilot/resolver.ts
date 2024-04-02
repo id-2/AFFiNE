@@ -12,6 +12,7 @@ import {
   ResolveField,
   Resolver,
 } from '@nestjs/graphql';
+import { SafeIntResolver } from 'graphql-scalars';
 
 import { CurrentUser, Public } from '../../core/auth';
 import { QuotaService } from '../../core/quota';
@@ -98,6 +99,15 @@ class CopilotHistoriesType implements Partial<ChatHistory> {
   messages!: ChatMessageType[];
 }
 
+@ObjectType('CopilotQuota')
+class CopilotQuotaType {
+  @Field(() => SafeIntResolver)
+  limit!: number;
+
+  @Field(() => SafeIntResolver)
+  used!: number;
+}
+
 @Resolver(() => CopilotType)
 export class CopilotResolver {
   constructor(
@@ -106,6 +116,42 @@ export class CopilotResolver {
     private readonly mutex: MutexService,
     private readonly chatSession: ChatSessionService
   ) {}
+
+  @ResolveField(() => CopilotQuotaType, {
+    name: 'quota',
+    description: 'Get the quota of the user in the workspace',
+    complexity: 2,
+  })
+  async getQuota(
+    @Parent() copilot: CopilotType,
+    @CurrentUser() user: CurrentUser | undefined,
+    @Args('docId') docId: string
+  ) {
+    // TODO(@darkskygit): remove this after the feature is stable
+    if (!user) return { used: 0 };
+
+    const quota = await this.quota.getUserQuota(user.id);
+    const limit = quota.feature.copilotActionLimit;
+
+    const actions = await this.chatSession.countSessions(
+      user.id,
+      copilot.workspaceId,
+      {
+        docId,
+        action: true,
+      }
+    );
+    const chats = await this.chatSession
+      .listHistories(user.id, copilot.workspaceId, docId)
+      .then(histories =>
+        histories.reduce(
+          (acc, h) => acc + h.messages.filter(m => m.role === 'user').length,
+          0
+        )
+      );
+
+    return { limit, used: actions + chats };
+  }
 
   @ResolveField(() => [String], {
     description: 'Get the session list of chats in the workspace',
@@ -185,14 +231,12 @@ export class CopilotResolver {
       return new TooManyRequestsException('Server is busy');
     }
     if (options.action && user) {
-      const quota = await this.quota.getUserQuota(user.id);
-      const actions = await this.chatSession.countSessions(
-        user.id,
-        options.workspaceId,
-        { docId: options.docId, action: true }
+      const { limit, used } = await this.getQuota(
+        { workspaceId: options.workspaceId },
+        user,
+        options.docId
       );
-      const limit = quota.feature.copilotActionLimit;
-      if (limit && Number.isFinite(limit) && actions >= limit) {
+      if (limit && Number.isFinite(limit) && used >= limit) {
         return new PaymentRequiredException(
           `You have reached the limit of actions in this workspace, please upgrade your plan.`
         );

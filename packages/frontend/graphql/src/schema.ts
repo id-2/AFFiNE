@@ -352,6 +352,7 @@ export type GetCopilotAnonymousHistoriesQuery = {
         role: string;
         content: string;
         attachments: Array<string> | null;
+        createdAt: string | null;
       }>;
     }>;
   };
@@ -391,8 +392,25 @@ export type GetCopilotHistoriesQuery = {
           role: string;
           content: string;
           attachments: Array<string> | null;
+          createdAt: string | null;
         }>;
       }>;
+    };
+  } | null;
+};
+
+export type GetCopilotQuotaQueryVariables = Exact<{
+  workspaceId: Scalars['String']['input'];
+  docId: Scalars['String']['input'];
+}>;
+
+export type GetCopilotQuotaQuery = {
+  __typename?: 'Query';
+  currentUser: {
+    __typename?: 'UserType';
+    copilot: {
+      __typename?: 'Copilot';
+      quota: { __typename?: 'CopilotQuota'; limit: number; used: number };
     };
   } | null;
 };
@@ -407,8 +425,8 @@ export type GetCopilotSessionsQuery = {
     __typename?: 'UserType';
     copilot: {
       __typename?: 'Copilot';
-      chats: Array<string>;
       actions: Array<string>;
+      chats: Array<string>;
     };
   } | null;
 };
@@ -1071,6 +1089,11 @@ export type Queries =
       name: 'getCopilotHistoriesQuery';
       variables: GetCopilotHistoriesQueryVariables;
       response: GetCopilotHistoriesQuery;
+    }
+  | {
+      name: 'getCopilotQuotaQuery';
+      variables: GetCopilotQuotaQueryVariables;
+      response: GetCopilotQuotaQuery;
     }
   | {
       name: 'getCopilotSessionsQuery';
