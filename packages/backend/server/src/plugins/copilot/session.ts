@@ -271,9 +271,13 @@ export class ChatSessionService {
         .map(state => {
           const ret = ChatMessageSchema.array().safeParse(state.messages);
           if (ret.success) {
-            const tokens = this.calculateTokenSize(state.messages, state.model);
+            const tokens = this.calculateTokenSize(
+              state.messages,
+              state.prompt.model as AvailableModel
+            );
             return {
               sessionId: state.sessionId,
+              action: state.prompt.action || undefined,
               tokens,
               messages: ret.data,
             };
@@ -322,7 +326,12 @@ export class ChatSessionService {
                   ret.data,
                   prompt.model as AvailableModel
                 );
-                return { sessionId: id, tokens, messages: ret.data };
+                return {
+                  sessionId: id,
+                  action: prompt.action || undefined,
+                  tokens,
+                  messages: ret.data,
+                };
               }
             } catch (e) {
               this.logger.error('Unexpected error in listHistories', e);

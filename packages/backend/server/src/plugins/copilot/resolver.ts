@@ -44,14 +44,10 @@ class CreateChatSessionInput {
   docId!: string;
 
   @Field(() => Boolean, {
-    description: 'Whether the session is for action',
-  })
-  action!: boolean;
-
-  @Field(() => String, {
     description: 'An mark identifying which view to use to display the session',
+    nullable: true,
   })
-  flavor!: string;
+  action!: string | undefined;
 
   @Field(() => String, {
     description: 'The model to use for the session',
@@ -101,7 +97,14 @@ class CopilotHistoriesType implements Partial<ChatHistory> {
   @Field(() => String)
   sessionId!: string;
 
-  @Field(() => Number)
+  @Field(() => String, {
+    description: 'An mark identifying which view to use to display the session',
+  })
+  action!: string;
+
+  @Field(() => Number, {
+    description: 'The number of tokens used in the session',
+  })
   tokens!: number;
 
   @Field(() => [ChatMessageType])

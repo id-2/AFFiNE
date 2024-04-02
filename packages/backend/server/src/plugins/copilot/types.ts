@@ -76,6 +76,7 @@ export type ChatMessage = z.infer<typeof ChatMessageSchema>;
 export const ChatHistorySchema = z
   .object({
     sessionId: z.string(),
+    action: z.string().optional(),
     tokens: z.number(),
     messages: z.array(PromptMessageSchema.or(ChatMessageSchema)),
   })

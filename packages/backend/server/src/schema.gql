@@ -23,8 +23,12 @@ type Copilot {
 }
 
 type CopilotHistories {
+  """An mark identifying which view to use to display the session"""
+  action: String!
   messages: [ChatMessage!]!
   sessionId: String!
+
+  """The number of tokens used in the session"""
   tokens: Int!
 }
 
@@ -34,12 +38,9 @@ type CopilotQuota {
 }
 
 input CreateChatSessionInput {
-  """Whether the session is for action"""
-  action: Boolean!
-  docId: String!
-
   """An mark identifying which view to use to display the session"""
-  flavor: String!
+  action: Boolean
+  docId: String!
 
   """The model to use for the session"""
   model: String!
