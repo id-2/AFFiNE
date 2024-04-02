@@ -166,7 +166,8 @@ export class ChatSessionService {
     const sessionId = randomUUID();
     const prompt = await this.prompt.get(options.promptName);
     if (!prompt) {
-      throw new Error(`Prompt not found: ${options.promptName}`);
+      this.logger.error(`Prompt not found: ${options.promptName}`);
+      throw new Error('Prompt not found');
     }
     await this.setSession({ ...options, sessionId, prompt, messages: [] });
     return sessionId;
