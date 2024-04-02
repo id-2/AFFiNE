@@ -60,14 +60,14 @@ test('should be able to manage prompt', async t => {
   ]);
   t.is((await prompt.list()).length, 1, 'should have one prompt');
   t.is(
-    (await prompt.get('test'))!.finish().length,
+    (await prompt.get('test'))!.finish({}).length,
     2,
     'should have two messages'
   );
 
   await prompt.update('test', [{ role: 'system', content: 'hello' }]);
   t.is(
-    (await prompt.get('test'))!.finish().length,
+    (await prompt.get('test'))!.finish({}).length,
     1,
     'should have one message'
   );
