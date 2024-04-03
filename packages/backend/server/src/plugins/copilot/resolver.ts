@@ -145,6 +145,8 @@ export class CopilotResolver {
     @CurrentUser() user: CurrentUser,
     @Args('docId') docId: string
   ) {
+    await this.permissions.checkWorkspace(copilot.workspaceId, user.id);
+
     const quota = await this.quota.getUserQuota(user.id);
     const limit = quota.feature.copilotActionLimit;
 
@@ -176,6 +178,7 @@ export class CopilotResolver {
     @Parent() copilot: CopilotType,
     @CurrentUser() user: CurrentUser
   ) {
+    await this.permissions.checkWorkspace(copilot.workspaceId, user.id);
     return await this.chatSession.listSessions(user.id, copilot.workspaceId);
   }
 
@@ -187,6 +190,7 @@ export class CopilotResolver {
     @Parent() copilot: CopilotType,
     @CurrentUser() user: CurrentUser
   ) {
+    await this.permissions.checkWorkspace(copilot.workspaceId, user.id);
     return await this.chatSession.listSessions(user.id, copilot.workspaceId, {
       action: true,
     });
@@ -228,6 +232,11 @@ export class CopilotResolver {
     @Args({ name: 'options', type: () => CreateChatSessionInput })
     options: CreateChatSessionInput
   ) {
+    await this.permissions.checkPagePermission(
+      options.workspaceId,
+      options.docId,
+      user.id
+    );
     const lockFlag = `session:${user.id}:${options.workspaceId}`;
     await using lock = await this.mutex.lock(lockFlag);
     if (!lock) {
