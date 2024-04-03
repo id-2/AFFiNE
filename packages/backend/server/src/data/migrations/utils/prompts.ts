@@ -15,6 +15,23 @@ type Prompt = {
 
 export const prompts: Prompt[] = [
   {
+    name: 'debug:chat:gpt4',
+    model: 'gpt-4-turbo-preview',
+    messages: [],
+  },
+  {
+    name: 'debug:action:gpt4',
+    action: 'text',
+    model: 'gpt-4-turbo-preview',
+    messages: [],
+  },
+  {
+    name: 'debug:action:vision4',
+    action: 'text',
+    model: 'gpt-4-vision-preview',
+    messages: [],
+  },
+  {
     name: 'Summary',
     action: 'text',
     model: 'gpt-3.5-turbo',
