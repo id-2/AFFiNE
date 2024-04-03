@@ -41,7 +41,7 @@ class CreateChatSessionInput {
   @Field(() => String)
   docId!: string;
 
-  @Field(() => Boolean, {
+  @Field(() => String, {
     description: 'An mark identifying which view to use to display the session',
     nullable: true,
   })
