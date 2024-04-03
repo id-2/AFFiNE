@@ -451,7 +451,7 @@ model AiPromptMessage {
 
 model AiPrompt {
   id        Int      @id @default(autoincrement()) @db.Integer
-  name      String   @unique @db.VarChar
+  name      String   @unique @db.VarChar(32)
   // an mark identifying which view to use to display the session
   // it is only used in the frontend and does not affect the backend
   action    String?  @db.VarChar
@@ -478,11 +478,11 @@ model AiSessionMessage {
 }
 
 model AiSession {
-  id          String   @id @default(uuid()) @db.VarChar
-  userId      String   @map("user_id") @db.VarChar
-  workspaceId String   @map("workspace_id") @db.VarChar
-  docId       String   @map("doc_id") @db.VarChar
-  promptName  String   @map("prompt_name") @db.VarChar
+  id          String   @id @default(uuid()) @db.VarChar(36)
+  userId      String   @map("user_id") @db.VarChar(36)
+  workspaceId String   @map("workspace_id") @db.VarChar(36)
+  docId       String   @map("doc_id") @db.VarChar(36)
+  promptName  String   @map("prompt_name") @db.VarChar(32)
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
