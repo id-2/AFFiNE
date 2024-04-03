@@ -47,7 +47,7 @@ export function getTokenEncoder(model?: string | null): Tiktoken | undefined {
 
 // ======== ChatMessage ========
 
-export const ChatMessageRole = Array.from(Object.values(AiPromptRole)) as [
+export const ChatMessageRole = Object.values(AiPromptRole) as [
   'system',
   'assistant',
   'user',
