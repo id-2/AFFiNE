@@ -156,7 +156,7 @@ export class PromptService {
               params: true,
             },
             orderBy: {
-              createdAt: 'asc',
+              idx: 'asc',
             },
           },
         },
